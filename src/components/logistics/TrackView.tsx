@@ -143,8 +143,8 @@ export default function TrackView({ track, onCrateClick }: TrackViewProps) {
 
       {/* Checkpoint Form Modal */}
       {showForm && selectedCrate && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="relative">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="relative w-full max-w-2xl my-auto">
             <CheckpointForm
               crateId={selectedCrate.id}
               trackId={track.id}

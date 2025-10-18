@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Package, Truck, FileText, Loader2 } from 'lucide-react';
+import { MapPin, Package, Truck, FileText, Loader2, Eye } from 'lucide-react';
 import { blockchainService } from '@/services/blockchain';
 import type { Checkpoint } from '@/types/logistics';
 
@@ -24,9 +24,14 @@ export default function CheckpointForm({
   const [report, setReport] = useState('');
   const [operator, setOperator] = useState('');
   const [loading, setLoading] = useState(false);
+  const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [crateState, setCrateState] = useState<any>(null);
+  const [hexString, setHexString] = useState('');
+  const [status, setStatus] = useState('');
+  const [bgColor, setBgColor] = useState<'violet' | 'yellow'>('violet');
 
   useEffect(() => {
     // Auto-detect geolocation
@@ -46,6 +51,73 @@ export default function CheckpointForm({
       );
     }
   }, []);
+
+  const generateRandomHex = (length: number): string => {
+    const chars = '0123456789abcdef';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const handleReadState = async () => {
+    setError(null);
+    setReading(true);
+    setCrateState(null);
+
+    try {
+      // Simulate reading crate state from blockchain
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate random 64-character hex string
+      const randomHex = generateRandomHex(64);
+      setHexString(randomHex);
+
+      // Randomly choose status
+      const statuses = ['ok', 'open', 'damaged'];
+      const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+      setStatus(randomStatus);
+
+      // Randomly choose background color (violet or yellow)
+      const colors: ('violet' | 'yellow')[] = ['violet', 'yellow'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      setBgColor(randomColor);
+      
+      const state = {
+        crateId,
+        trackId,
+        unitName,
+        status: 'In Transit',
+        lastCheckpoint: {
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          location: { lat: 52.2297, lng: 21.0122 },
+          operator: 'Operator-001'
+        },
+        totalCheckpoints: 3,
+        verified: true
+      };
+
+      setCrateState(state);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to read crate state');
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ok':
+        return 'text-green-400';
+      case 'open':
+        return 'text-yellow-400';
+      case 'damaged':
+        return 'text-red-400';
+      default:
+        return 'text-gray-400';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,6 +300,74 @@ export default function CheckpointForm({
             )}
           </div>
         )}
+
+        {/* Crate State Display */}
+        {crateState && (
+          <div className="space-y-3">
+            {/* Hex String Input */}
+            {hexString && (
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400 uppercase tracking-wide">
+                  Crate ID (Hex)
+                </label>
+                <input
+                  type="text"
+                  value={hexString}
+                  readOnly
+                  className={`w-full px-4 py-3 rounded border-2 font-mono text-sm ${
+                    bgColor === 'violet'
+                      ? 'bg-violet-100 border-violet-300 text-violet-900'
+                      : 'bg-yellow-100 border-yellow-300 text-yellow-900'
+                  }`}
+                />
+              </div>
+            )}
+
+            {/* Status Display */}
+            {status && (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 font-semibold">Status:</span>
+                <span className={`font-semibold ${getStatusColor(status)}`}>
+                  {status.toUpperCase()}
+                </span>
+              </div>
+            )}
+
+            {/* Additional State Info */}
+            <div className="bg-blue-900/30 border border-blue-700 text-blue-400 px-4 py-3 rounded">
+              <p className="font-semibold mb-2">📦 Additional State Info</p>
+              <div className="text-sm space-y-1">
+                <p>Total Checkpoints: <span className="text-blue-300">{crateState.totalCheckpoints}</span></p>
+                <p>Verified: <span className="text-blue-300">{crateState.verified ? 'Yes' : 'No'}</span></p>
+                {crateState.lastCheckpoint && (
+                  <p className="text-xs mt-2 pt-2 border-t border-blue-800">
+                    Last: {new Date(crateState.lastCheckpoint.timestamp).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Read State Button */}
+        <button
+          type="button"
+          onClick={handleReadState}
+          disabled={reading}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded transition-colors flex items-center justify-center gap-2"
+        >
+          {reading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Reading State...
+            </>
+          ) : (
+            <>
+              <Eye className="w-5 h-5" />
+              Read Crate/Cargo Unit State
+            </>
+          )}
+        </button>
 
         {/* Submit Button */}
         <button
